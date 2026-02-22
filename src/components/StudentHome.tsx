@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { AssignmentAttempt } from './AssignmentAttempt';
 import { QuizAttempt } from './QuizAttempt';
@@ -13,6 +13,7 @@ interface Assignment {
   type: 'assignment' | 'quiz';
   questions: any[];
   createdAt: any;
+  semester?: string;
 }
 
 interface StudentHomeProps {
@@ -24,17 +25,30 @@ export function StudentHome({ userId }: StudentHomeProps) {
   const [attemptedIds, setAttemptedIds] = useState<string[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userSemester, setUserSemester] = useState<string>('sem-1');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch user's semester
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUserSemester(userData.semester || 'sem-1');
+        }
+
         // Fetch all assignments
         const assignmentsSnapshot = await getDocs(collection(db, 'assignments'));
         const assignmentsData = assignmentsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Assignment[];
-        setAssignments(assignmentsData);
+
+        // Filter assignments by user's semester
+        const filteredAssignments = assignmentsData.filter(a =>
+          !a.semester || a.semester === userSemester
+        );
+        setAssignments(filteredAssignments);
 
         // Fetch student's attempted assignments
         const scoresQuery = query(collection(db, 'scores'), where('studentId', '==', userId));
@@ -105,10 +119,15 @@ export function StudentHome({ userId }: StudentHomeProps) {
           >
             Mon Tableau de Bord
           </motion.h1>
-          <p className="text-red-100">Welcome to Your Dashboard</p>
+          <div className="flex items-center gap-2">
+            <p className="text-red-100">Welcome to Your Dashboard</p>
+            <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium">
+              {userSemester.replace('sem-', 'Semester ')}
+            </span>
+          </div>
         </div>
         <div className="absolute right-0 top-0 h-full w-1/3 opacity-20">
-          <ImageWithFallback 
+          <ImageWithFallback
             src="https://images.unsplash.com/photo-1514369118554-e20d93546b30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkZW50JTIwc3R1ZHlpbmd8ZW58MXx8fHwxNzY0MDc4OTgzfDA&ixlib=rb-4.1.0&q=80&w=1080"
             alt="Student"
             className="w-full h-full object-cover"
@@ -269,9 +288,9 @@ export function StudentHome({ userId }: StudentHomeProps) {
           className="bg-white rounded-xl p-12 text-center shadow-lg border border-gray-100"
         >
           <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl mb-2 text-gray-800">No Assignments Yet</h3>
+          <h3 className="text-xl mb-2 text-gray-800">No Assignments for Your Semester</h3>
           <p className="text-gray-500">
-            Your teacher hasn't created any assignments or quizzes yet. Check back later!
+            Your teacher hasn't created any assignments or quizzes for {userSemester.replace('sem-', 'Semester ')} yet. Check back later!
           </p>
         </motion.div>
       )}

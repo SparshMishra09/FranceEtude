@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { ClipboardList, Sparkles, Info } from 'lucide-react';
+import { ClipboardList, Sparkles, Info, BookOpen } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
 export function CreateQuiz() {
   const [title, setTitle] = useState('');
+  const [semester, setSemester] = useState<string>('sem-1');
   const [questionsText, setQuestionsText] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -72,7 +73,7 @@ export function CreateQuiz() {
 
     try {
       const questions = parseQuizQuestions(questionsText);
-      
+
       if (questions.length === 0) {
         toast.error('No valid questions found. Please check the format.');
         setLoading(false);
@@ -82,12 +83,14 @@ export function CreateQuiz() {
       await addDoc(collection(db, 'assignments'), {
         title,
         type: 'quiz',
+        semester,
         questions,
         createdAt: new Date()
       });
 
-      toast.success(`Quiz created with ${questions.length} questions!`);
+      toast.success(`Quiz created for Semester ${semester.replace('sem-', '')} with ${questions.length} questions!`);
       setTitle('');
+      setSemester('sem-1');
       setQuestionsText('');
     } catch (error) {
       console.error('Error creating quiz:', error);
@@ -128,6 +131,34 @@ export function CreateQuiz() {
               required
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#EF4135] focus:border-transparent transition-all outline-none"
             />
+          </div>
+
+          {/* Semester Selector */}
+          <div>
+            <label className="block text-gray-700 mb-2">
+              Select Semester
+            </label>
+            <div className="relative">
+              <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <select
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                required
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#EF4135] focus:border-transparent transition-all outline-none appearance-none"
+              >
+                <option value="sem-1">Semester 1</option>
+                <option value="sem-2">Semester 2</option>
+                <option value="sem-3">Semester 3</option>
+                <option value="sem-4">Semester 4</option>
+                <option value="sem-5">Semester 5</option>
+                <option value="sem-6">Semester 6</option>
+                <option value="sem-7">Semester 7</option>
+                <option value="sem-8">Semester 8</option>
+              </select>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              This quiz will only be visible to students in {semester.replace('sem-', 'Semester ')}
+            </p>
           </div>
 
           {/* Instructions Card */}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { AuthScreen } from './components/AuthScreen';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -26,10 +26,25 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        
+
         // Check if user is the hardcoded admin
         if (firebaseUser.email === 'franceetude@gmail.com') {
           setUserRole('admin');
+          // Ensure admin has a Firestore document with admin role
+          try {
+            const adminDocRef = doc(db, 'users', firebaseUser.uid);
+            const adminDoc = await getDoc(adminDocRef);
+            if (!adminDoc.exists()) {
+              await setDoc(adminDocRef, {
+                email: firebaseUser.email,
+                name: 'Administrator',
+                role: 'admin',
+                createdAt: new Date()
+              });
+            }
+          } catch (error) {
+            console.error('Error creating admin document:', error);
+          }
         } else {
           // Get user role from Firestore
           try {

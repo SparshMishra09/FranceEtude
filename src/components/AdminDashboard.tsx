@@ -6,10 +6,11 @@ import { AdminHome } from './AdminHome';
 import { CreateAssignment } from './CreateAssignment';
 import { CreateQuiz } from './CreateQuiz';
 import { AdminProfile } from './AdminProfile';
-import { LayoutDashboard, FileText, ClipboardList, User, LogOut, GraduationCap } from 'lucide-react';
+import { AdminStudents } from './AdminStudents';
+import { LayoutDashboard, FileText, ClipboardList, User, LogOut, GraduationCap, Users } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
-type AdminView = 'home' | 'create-assignment' | 'create-quiz' | 'profile';
+type AdminView = 'home' | 'students' | 'create-assignment' | 'create-quiz' | 'profile';
 
 interface AdminDashboardProps {
   user: any;
@@ -29,6 +30,7 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
 
   const navItems = [
     { id: 'home' as AdminView, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'students' as AdminView, label: 'Students', icon: Users },
     { id: 'create-assignment' as AdminView, label: 'Create Assignment', icon: FileText },
     { id: 'create-quiz' as AdminView, label: 'Create Quiz', icon: ClipboardList },
     { id: 'profile' as AdminView, label: 'Profile', icon: User },
@@ -134,6 +136,7 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
               transition={{ duration: 0.3 }}
             >
               {currentView === 'home' && <AdminHome />}
+              {currentView === 'students' && <AdminStudents />}
               {currentView === 'create-assignment' && <CreateAssignment />}
               {currentView === 'create-quiz' && <CreateQuiz />}
               {currentView === 'profile' && <AdminProfile user={user} />}
