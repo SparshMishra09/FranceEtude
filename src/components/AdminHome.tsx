@@ -78,7 +78,7 @@ export function AdminHome() {
   const filteredScores = selectedSemester === 'all'
     ? scores
     : scores.filter(s => {
-        const student = students.find(st => st.name === s.studentName);
+        const student = students.find(st => st.id === s.studentId);
         return student?.semester === selectedSemester;
       });
 

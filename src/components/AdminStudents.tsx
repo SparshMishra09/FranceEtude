@@ -6,6 +6,7 @@ import { Users, Trash2, Search, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface Student {
   id: string;
@@ -30,6 +31,7 @@ export function AdminStudents() {
   const [scores, setScores] = useState<Score[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSemester, setSelectedSemester] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,10 +112,12 @@ export function AdminStudents() {
     return avg.toFixed(1);
   };
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          student.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSemester = selectedSemester === 'all' || student.semester === selectedSemester;
+    return matchesSearch && matchesSemester;
+  });
 
   if (loading) {
     return (
@@ -139,9 +143,10 @@ export function AdminStudents() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-100">
-        <div className="relative">
+      {/* Filtering Options */}
+      <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-100 flex flex-col sm:flex-row gap-4">
+        {/* Search Bar */}
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
             type="text"
@@ -150,6 +155,27 @@ export function AdminStudents() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
+        </div>
+
+        {/* Semester Filter */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <BookOpen className="w-5 h-5 text-[#0055A4] hidden sm:block" />
+          <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Filter by semester" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Semesters</SelectItem>
+              <SelectItem value="sem-1">Semester 1</SelectItem>
+              <SelectItem value="sem-2">Semester 2</SelectItem>
+              <SelectItem value="sem-3">Semester 3</SelectItem>
+              <SelectItem value="sem-4">Semester 4</SelectItem>
+              <SelectItem value="sem-5">Semester 5</SelectItem>
+              <SelectItem value="sem-6">Semester 6</SelectItem>
+              <SelectItem value="sem-7">Semester 7</SelectItem>
+              <SelectItem value="sem-8">Semester 8</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

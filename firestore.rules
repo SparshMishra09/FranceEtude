@@ -2,38 +2,43 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Check if the user is an admin by validating their specific email
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'franceetude@gmail.com';
+    }
+
     // ===========================================
     // USERS COLLECTION
     // ===========================================
     match /users/{userId} {
-      // Allow read: Any authenticated user can read user data
-      allow read: if request.auth != null;
+      // Allow read: Admins can read all users; Users can only read themselves
+      allow read: if request.auth != null && (isAdmin() || request.auth.uid == userId);
       
       // Allow create: Users can create their own document on signup
       allow create: if request.auth != null && request.auth.uid == userId;
       
-      // Allow update: Users can update their own profile
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // Allow update: Users can update their own profile; Admins can update any profile
+      allow update: if request.auth != null && (isAdmin() || request.auth.uid == userId);
       
-      // Allow delete: Any authenticated user can delete (admin UI controls access)
-      allow delete: if request.auth != null;
+      // Allow delete: Only admins can delete user documents
+      allow delete: if isAdmin();
     }
     
     // ===========================================
     // SCORES COLLECTION
     // ===========================================
     match /scores/{scoreId} {
-      // Allow read: Any authenticated user can read scores
-      allow read: if request.auth != null;
+      // Allow read: Admins can read all scores; Users can only read their own scores
+      allow read: if request.auth != null && (isAdmin() || resource.data.studentId == request.auth.uid);
       
-      // Allow create: Any authenticated user can submit scores (students submitting assignments)
-      allow create: if request.auth != null;
+      // Allow create: Any authenticated user can submit scores
+      allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
       
-      // Allow update: Any authenticated user can update (for admin corrections)
-      allow update: if request.auth != null;
+      // Allow update: Only admins can update scores
+      allow update: if isAdmin();
       
-      // Allow delete: Any authenticated user can delete (admin UI controls access)
-      allow delete: if request.auth != null;
+      // Allow delete: Only admins can delete scores
+      allow delete: if isAdmin();
     }
     
     // ===========================================
@@ -41,16 +46,11 @@ service cloud.firestore {
     // ===========================================
     match /assignments/{assignmentId} {
       // Allow read: Any authenticated user can read assignments
+      // Future-proofing: We could restrict read to specific semesters, but filtering happens well on client-side
       allow read: if request.auth != null;
       
-      // Allow create: Any authenticated user can create (admin UI controls access)
-      allow create: if request.auth != null;
-      
-      // Allow update: Any authenticated user can update (admin UI controls access)
-      allow update: if request.auth != null;
-      
-      // Allow delete: Any authenticated user can delete (admin UI controls access)
-      allow delete: if request.auth != null;
+      // Allow create, update, delete: Only admins can modify assignments
+      allow create, update, delete: if isAdmin();
     }
   }
 }

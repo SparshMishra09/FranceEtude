@@ -31,10 +31,12 @@ export function StudentHome({ userId }: StudentHomeProps) {
     const fetchData = async () => {
       try {
         // Fetch user's semester
+        let currentSemester = 'sem-1';
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setUserSemester(userData.semester || 'sem-1');
+          currentSemester = userData.semester || 'sem-1';
+          setUserSemester(currentSemester);
         }
 
         // Fetch all assignments
@@ -44,9 +46,9 @@ export function StudentHome({ userId }: StudentHomeProps) {
           ...doc.data()
         })) as Assignment[];
 
-        // Filter assignments by user's semester
+        // Filter assignments by user's semester using the fetched value
         const filteredAssignments = assignmentsData.filter(a =>
-          !a.semester || a.semester === userSemester
+          !a.semester || a.semester === currentSemester
         );
         setAssignments(filteredAssignments);
 
