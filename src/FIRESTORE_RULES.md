@@ -61,17 +61,45 @@ service cloud.firestore {
     match /scores/{scoreId} {
       // Admin can read all scores
       // Students can read their own scores
-      allow read: if isAuthenticated() && 
+      allow read: if isAuthenticated() &&
                      (isAdmin() || resource.data.studentId == request.auth.uid);
-      
+
       // Students can create their own scores
-      allow create: if isAuthenticated() && 
+      allow create: if isAuthenticated() &&
                        request.resource.data.studentId == request.auth.uid;
-      
+
       // No one can update scores (they are immutable once created)
       allow update: if false;
-      
+
       // Only admin can delete scores
+      allow delete: if isAdmin();
+    }
+
+    // Course Topics collection (French Course)
+    match /courseTopics/{topicId} {
+      // Anyone authenticated can read course topics
+      allow read: if isAuthenticated();
+
+      // Only admin can create, update, or delete course topics
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Course Progress collection
+    match /courseProgress/{progressId} {
+      // Admin can read all progress
+      // Students can read their own progress
+      allow read: if isAuthenticated() &&
+                     (isAdmin() || resource.data.userId == request.auth.uid);
+
+      // Students can create their own progress
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid;
+
+      // Students can update their own progress; Admin can update any
+      allow update: if isAuthenticated() &&
+                       (isAdmin() || resource.data.userId == request.auth.uid);
+
+      // Only admin can delete progress
       allow delete: if isAdmin();
     }
   }
@@ -96,22 +124,37 @@ service cloud.firestore {
 - **Update**: Scores are immutable once created (prevents cheating)
 - **Delete**: Only admin can delete scores
 
+### Course Topics Collection (French Course)
+- **Read**: All authenticated users can view course topics
+- **Create/Update/Delete**: Only the admin can manage course topics
+
+### Course Progress Collection
+- **Read**: Admin can view all student progress; students can only view their own progress
+- **Create**: Students can create their own progress when starting the course
+- **Update**: Students can update their own progress as they complete topics
+- **Delete**: Only admin can delete progress records
+
 ## Important Notes
 
 1. The admin email is hardcoded as `franceetude@gmail.com` in both the rules and the application
 2. All users who sign up through the application are automatically assigned the 'student' role
 3. Scores cannot be modified after submission to maintain integrity
-4. Make sure to replace the Firebase configuration in `/firebase.ts` with your actual project credentials
+4. The French Course feature uses two new collections: `courseTopics` and `courseProgress`
+5. Students must spend at least 1 minute studying each topic before proceeding to the assignment
+6. Students must score at least 70% on topic assignments to unlock the next topic
+7. Make sure to replace the Firebase configuration in `/firebase.ts` with your actual project credentials
 
 ## Testing the Rules
 
 After applying these rules, test them by:
 
 1. Creating a student account and trying to access admin features (should be denied)
-2. Logging in as admin and verifying you can create assignments
+2. Logging in as admin and verifying you can create assignments and course topics
 3. As a student, submit an assignment and verify the score is saved
 4. Try to view another student's scores (should be denied)
 5. Verify students can only attempt each assignment once
+6. As a student, start the French course and verify progress is tracked
+7. As admin, view student course progress in the Course Progress section
 
 ## Firebase Configuration
 

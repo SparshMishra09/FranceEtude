@@ -8,10 +8,12 @@ import { CreateQuiz } from './CreateQuiz';
 import { AdminProfile } from './AdminProfile';
 import { AdminStudents } from './AdminStudents';
 import { AdminAssignments } from './AdminAssignments';
-import { LayoutDashboard, FileText, ClipboardList, User, LogOut, GraduationCap, Users, Library } from 'lucide-react';
+import { AdminCourseManagement } from './AdminCourseManagement';
+import { AdminCourseProgress } from './AdminCourseProgress';
+import { LayoutDashboard, FileText, ClipboardList, User, LogOut, GraduationCap, Users, Library, BookOpen, Trophy } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
-type AdminView = 'home' | 'students' | 'assignments' | 'create-assignment' | 'create-quiz' | 'profile';
+type AdminView = 'home' | 'students' | 'assignments' | 'create-assignment' | 'create-quiz' | 'course-manage' | 'course-progress' | 'profile';
 
 interface AdminDashboardProps {
   user: any;
@@ -35,6 +37,8 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
     { id: 'assignments' as AdminView, label: 'Manage Assignments', icon: Library },
     { id: 'create-assignment' as AdminView, label: 'Create Assignment', icon: FileText },
     { id: 'create-quiz' as AdminView, label: 'Create Quiz', icon: ClipboardList },
+    { id: 'course-manage' as AdminView, label: 'French Course', icon: BookOpen },
+    { id: 'course-progress' as AdminView, label: 'Course Progress', icon: Trophy },
     { id: 'profile' as AdminView, label: 'Profile', icon: User },
   ];
 
@@ -142,6 +146,8 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
               {currentView === 'assignments' && <AdminAssignments />}
               {currentView === 'create-assignment' && <CreateAssignment />}
               {currentView === 'create-quiz' && <CreateQuiz />}
+              {currentView === 'course-manage' && <AdminCourseManagement />}
+              {currentView === 'course-progress' && <AdminCourseProgress />}
               {currentView === 'profile' && <AdminProfile user={user} />}
             </motion.div>
           </AnimatePresence>

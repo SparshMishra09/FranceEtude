@@ -1,10 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Check if the user is an admin by validating their specific email
+
+    // Helper function to get the user document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check if the user is an admin by checking their role in Firestore
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'franceetude@gmail.com';
+      return request.auth != null &&
+             getUserData().role == 'admin';
     }
 
     // ===========================================
@@ -13,44 +19,75 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow read: Admins can read all users; Users can only read themselves
       allow read: if request.auth != null && (isAdmin() || request.auth.uid == userId);
-      
+
       // Allow create: Users can create their own document on signup
       allow create: if request.auth != null && request.auth.uid == userId;
-      
+
       // Allow update: Users can update their own profile; Admins can update any profile
       allow update: if request.auth != null && (isAdmin() || request.auth.uid == userId);
-      
+
       // Allow delete: Only admins can delete user documents
       allow delete: if isAdmin();
     }
-    
+
     // ===========================================
     // SCORES COLLECTION
     // ===========================================
     match /scores/{scoreId} {
       // Allow read: Admins can read all scores; Users can only read their own scores
       allow read: if request.auth != null && (isAdmin() || resource.data.studentId == request.auth.uid);
-      
+
       // Allow create: Any authenticated user can submit scores
       allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
-      
+
       // Allow update: Only admins can update scores
       allow update: if isAdmin();
-      
+
       // Allow delete: Only admins can delete scores
       allow delete: if isAdmin();
     }
-    
+
     // ===========================================
     // ASSIGNMENTS COLLECTION (assignments & quizzes)
     // ===========================================
     match /assignments/{assignmentId} {
       // Allow read: Any authenticated user can read assignments
-      // Future-proofing: We could restrict read to specific semesters, but filtering happens well on client-side
       allow read: if request.auth != null;
-      
+
       // Allow create, update, delete: Only admins can modify assignments
       allow create, update, delete: if isAdmin();
+    }
+
+    // ===========================================
+    // COURSE TOPICS COLLECTION (French course topics)
+    // ===========================================
+    match /courseTopics/{topicId} {
+      // Allow read: Any authenticated user can read course topics
+      allow read: if request.auth != null;
+
+      // Allow create, update, delete: Only admins can modify course topics
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===========================================
+    // COURSE PROGRESS COLLECTION (student course progress)
+    // ===========================================
+    match /courseProgress/{progressId} {
+      // Allow read: 
+      // - Admins can read all progress
+      // - Users can read their own progress (document ID matches their user ID)
+      allow read: if request.auth != null && (isAdmin() || progressId == request.auth.uid);
+
+      // Allow create: Users can create their own progress document
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // Allow update: 
+      // - Users can update their own progress (document ID matches their user ID)
+      // - Admins can update any progress
+      allow update: if request.auth != null && (isAdmin() || progressId == request.auth.uid);
+
+      // Allow delete: Only admins can delete progress documents
+      allow delete: if isAdmin();
     }
   }
 }

@@ -4,10 +4,11 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { StudentHome } from './StudentHome';
 import { StudentProfile } from './StudentProfile';
-import { Home, User, LogOut, GraduationCap } from 'lucide-react';
+import { StudentCourseView } from './StudentCourseView';
+import { Home, User, LogOut, GraduationCap, BookOpen } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
-type StudentView = 'home' | 'profile';
+type StudentView = 'home' | 'profile' | 'course';
 
 interface StudentDashboardProps {
   user: any;
@@ -27,6 +28,7 @@ export function StudentDashboard({ user }: StudentDashboardProps) {
 
   const navItems = [
     { id: 'home' as StudentView, label: 'Dashboard', icon: Home },
+    { id: 'course' as StudentView, label: 'French Course', icon: BookOpen },
     { id: 'profile' as StudentView, label: 'Profile', icon: User },
   ];
 
@@ -130,6 +132,7 @@ export function StudentDashboard({ user }: StudentDashboardProps) {
               transition={{ duration: 0.3 }}
             >
               {currentView === 'home' && <StudentHome userId={user.uid} />}
+              {currentView === 'course' && <StudentCourseView userId={user.uid} />}
               {currentView === 'profile' && <StudentProfile user={user} />}
             </motion.div>
           </AnimatePresence>

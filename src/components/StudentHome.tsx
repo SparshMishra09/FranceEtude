@@ -46,10 +46,11 @@ export function StudentHome({ userId }: StudentHomeProps) {
           ...doc.data()
         })) as Assignment[];
 
-        // Filter assignments by user's semester using the fetched value
-        const filteredAssignments = assignmentsData.filter(a =>
-          !a.semester || a.semester === currentSemester
-        );
+        // Filter assignments by user's semester - ONLY show assignments for the student's specific semester
+        const filteredAssignments = assignmentsData.filter(a => {
+          const assignmentSemester = a.semester || 'sem-1';
+          return assignmentSemester === currentSemester;
+        });
         setAssignments(filteredAssignments);
 
         // Fetch student's attempted assignments
