@@ -8,6 +8,8 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Progress } from './ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { AssignmentAttempt } from './AssignmentAttempt';
+import { QuizAttempt } from './QuizAttempt';
 
 interface CourseTopic {
   id: string;
@@ -336,15 +338,23 @@ export function CourseTopicLearning({ topic, userId, onComplete, onBack, allTopi
                 <BookOpen className="w-5 h-5 text-purple-600" />
                 Vocabulary
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {topic.vocabulary.map((word: string, index: number) => (
-                  <span
-                    key={index}
-                    className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
-                  >
-                    {word}
-                  </span>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <thead className="bg-purple-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-purple-800 border-b border-purple-200">#</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-purple-800 border-b border-purple-200">French Word</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topic.vocabulary.map((word: string, index: number) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-purple-50'}>
+                        <td className="px-4 py-3 text-sm text-gray-600 border-b border-gray-100">{index + 1}</td>
+                        <td className="px-4 py-3 text-sm text-gray-800 font-medium border-b border-gray-100">{word}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -484,69 +494,66 @@ export function CourseTopicLearning({ topic, userId, onComplete, onBack, allTopi
   );
 }
 
-// Course Assignment Attempt Component
+// Course Assignment Attempt Component - wraps existing AssignmentAttempt/QuizAttempt
 function CourseAssignmentAttempt({ topic, userId, onComplete }: { topic: CourseTopic; userId: string; onComplete: () => void }) {
-  const [answers, setAnswers] = useState<string[]>(new Array(topic.assignmentQuestions.length).fill(''));
-  const [selectedAnswers, setSelectedAnswers] = useState<string[]>(new Array(topic.assignmentQuestions.length).fill(''));
   const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [score, setScore] = useState<{ correct: number; total: number; percentage: string } | null>(null);
 
   const isAssignment = topic.assignmentType === 'assignment';
 
-  const handleSubmit = async () => {
-    const allAnswered = isAssignment 
-      ? answers.every(a => a.trim())
-      : selectedAnswers.every(a => a);
-
-    if (!allAnswered) {
-      toast.error('Please answer all questions');
-      return;
-    }
-
+  const handleSubmit = async (scoreData: { correct: number; total: number; percentage: string }) => {
     setLoading(true);
 
     try {
-      let correctCount = 0;
+      // Get current progress
+      const progressDoc = await getDoc(doc(db, 'courseProgress', userId));
+      let completedTopics: string[] = [];
 
-      if (isAssignment) {
-        topic.assignmentQuestions.forEach((q: any, index: number) => {
-          const studentAnswer = answers[index].trim().toLowerCase();
-          const correctAnswer = q.answer.trim().toLowerCase();
-          if (studentAnswer === correctAnswer) {
-            correctCount++;
-          }
-        });
-      } else {
-        topic.assignmentQuestions.forEach((q: any, index: number) => {
-          if (selectedAnswers[index] === q.correctAnswer) {
-            correctCount++;
-          }
-        });
+      if (progressDoc.exists()) {
+        completedTopics = progressDoc.data().completedTopics || [];
       }
 
-      const percentage = (correctCount / topic.assignmentQuestions.length) * 100;
-
-      if (percentage < 70) {
-        toast.error(`Score: ${percentage.toFixed(1)}%. You need at least 70% to proceed. Please try again!`);
-        setSubmitted(true);
-        setScore(correctCount);
-      } else {
-        setScore(correctCount);
-        setSubmitted(true);
-        onComplete();
+      // Add this topic to completed topics ONLY if not already completed
+      if (!completedTopics.includes(topic.id)) {
+        completedTopics.push(topic.id);
       }
+
+      // Find next topic using order property
+      const nextTopicOrder = topic.order + 1;
+      
+      // Get next topic from allTopics passed from parent
+      const nextTopic = allTopics.find(t => t.order === nextTopicOrder);
+
+      // Update progress
+      await updateDoc(doc(db, 'courseProgress', userId), {
+        completedTopics,
+        currentTopicId: nextTopic ? nextTopic.id : null,
+        completedAt: nextTopic ? undefined : new Date()
+      });
+
+      setScore(scoreData);
+      toast.success('Topic completed! Bien joué!');
     } catch (error) {
-      console.error('Error submitting assignment:', error);
-      toast.error('Failed to submit assignment');
+      console.error('Error updating progress:', error);
+      toast.error('Failed to update progress');
     } finally {
       setLoading(false);
     }
   };
 
-  if (submitted && score / topic.assignmentQuestions.length < 0.7) {
-    const percentage = ((score / topic.assignmentQuestions.length) * 100).toFixed(1);
+  const handleAssignmentComplete = async (passed: boolean, scoreData?: { correct: number; total: number; percentage: string }) => {
+    if (passed && scoreData) {
+      // Save progress and show score
+      await handleSubmit(scoreData);
+      setSubmitted(true);
+    } else if (!passed && scoreData) {
+      // Failed - show retry screen
+      setSubmitted(true);
+    }
+  };
 
+  if (submitted && score) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -559,25 +566,33 @@ function CourseAssignmentAttempt({ topic, userId, onComplete }: { topic: CourseT
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: 'spring' }}
-              className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6"
+              className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
             >
-              <AlertCircle className="w-10 h-10 text-red-600" />
+              <CheckCircle className="w-10 h-10 text-green-600" />
             </motion.div>
 
-            <h2 className="text-3xl mb-2 text-gray-800">Needs Improvement</h2>
-            <p className="text-gray-600 mb-4">Your score: {percentage}%</p>
-            <p className="text-gray-600 mb-8">You need at least 70% to proceed. Review the material and try again!</p>
+            <h2 className="text-3xl mb-2 text-gray-800">Topic Completed!</h2>
+            <p className="text-gray-600 mb-6">Félicitations! You've mastered this topic.</p>
+
+            <div className="bg-gradient-to-r from-[#0055A4] to-purple-600 rounded-xl p-6 text-white mb-8">
+              <p className="text-lg mb-2">Your Score</p>
+              <p className="text-5xl font-bold mb-1">{score.correct}/{score.total}</p>
+              <p className="text-2xl">{score.percentage}%</p>
+            </div>
 
             <div className="space-y-3">
               <Button
-                onClick={() => {
-                  setSubmitted(false);
-                  setAnswers(new Array(topic.assignmentQuestions.length).fill(''));
-                  setSelectedAnswers(new Array(topic.assignmentQuestions.length).fill(''));
-                }}
-                className="w-full bg-gradient-to-r from-[#0055A4] to-purple-600"
+                onClick={onComplete}
+                className="w-full bg-gradient-to-r from-[#0055A4] to-purple-600 hover:shadow-lg"
               >
-                Retry Assignment
+                Continue to Next Topic
+              </Button>
+              <Button
+                onClick={onBack}
+                variant="outline"
+                className="w-full"
+              >
+                Back to Course Overview
               </Button>
             </div>
           </CardContent>
@@ -586,88 +601,31 @@ function CourseAssignmentAttempt({ topic, userId, onComplete }: { topic: CourseT
     );
   }
 
+  // Create a mock assignment/quiz object for the existing components
+  const mockAssignment = {
+    id: topic.id,
+    title: `${topic.title} - ${isAssignment ? 'Assignment' : 'Quiz'}`,
+    questions: topic.assignmentQuestions,
+    type: topic.assignmentType
+  };
+
   return (
-    <div className="max-w-3xl mx-auto">
-      <Card className="overflow-hidden">
-        <div className="bg-gradient-to-r from-[#0055A4] to-purple-600 p-6 text-white">
-          <h2 className="text-2xl font-bold">{topic.title} - Assignment</h2>
-          <p className="text-blue-100">{topic.assignmentQuestions.length} questions | Pass mark: 70%</p>
-        </div>
-
-        <CardContent className="p-6 space-y-6">
-          {topic.assignmentQuestions.map((q: any, index: number) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="p-4 bg-gray-50 rounded-xl border border-gray-200"
-            >
-              <p className="mb-4 text-gray-800 font-medium">
-                <span className="text-[#0055A4] mr-2">Q{index + 1}:</span>
-                {q.question}
-              </p>
-
-              {isAssignment ? (
-                <input
-                  type="text"
-                  value={answers[index]}
-                  onChange={(e) => {
-                    const newAnswers = [...answers];
-                    newAnswers[index] = e.target.value;
-                    setAnswers(newAnswers);
-                  }}
-                  placeholder="Type your answer here..."
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0055A4] focus:border-transparent transition-all outline-none"
-                />
-              ) : (
-                <div className="space-y-2">
-                  {q.options.map((option: string, optIndex: number) => {
-                    const letter = String.fromCharCode(65 + optIndex);
-                    const isSelected = selectedAnswers[index] === letter;
-
-                    return (
-                      <motion.button
-                        key={optIndex}
-                        type="button"
-                        onClick={() => {
-                          const newAnswers = [...selectedAnswers];
-                          newAnswers[index] = letter;
-                          setSelectedAnswers(newAnswers);
-                        }}
-                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                          isSelected
-                            ? 'border-[#0055A4] bg-blue-50'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                      >
-                        <span className={`mr-3 px-2 py-1 rounded ${
-                          isSelected ? 'bg-[#0055A4] text-white' : 'bg-gray-200 text-gray-700'
-                        }`}>
-                          {letter}
-                        </span>
-                        {option}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
-          ))}
-
-          <motion.button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-[#0055A4] to-purple-600 text-white py-4 rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            {loading ? 'Submitting...' : 'Submit Assignment'}
-          </motion.button>
-        </CardContent>
-      </Card>
+    <div>
+      {isAssignment ? (
+        <AssignmentAttempt
+          assignment={mockAssignment}
+          userId={userId}
+          onComplete={handleAssignmentComplete}
+          requirePass={true}
+        />
+      ) : (
+        <QuizAttempt
+          quiz={mockAssignment}
+          userId={userId}
+          onComplete={handleAssignmentComplete}
+          requirePass={true}
+        />
+      )}
     </div>
   );
 }

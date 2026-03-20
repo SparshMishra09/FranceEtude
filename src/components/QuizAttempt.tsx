@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { ClipboardList, Send, CheckCircle } from 'lucide-react';
+import { ClipboardList, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
 
 interface QuizAttemptProps {
   quiz: any;
   userId: string;
-  onComplete: () => void;
+  onComplete: (passed: boolean, scoreData?: { correct: number; total: number; percentage: string }) => void;
+  requirePass?: boolean; // If true, requires 70% to pass
 }
 
-export function QuizAttempt({ quiz, userId, onComplete }: QuizAttemptProps) {
+export function QuizAttempt({ quiz, userId, onComplete, requirePass = false }: QuizAttemptProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>(new Array(quiz.questions.length).fill(''));
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
@@ -52,7 +55,23 @@ export function QuizAttempt({ quiz, userId, onComplete }: QuizAttemptProps) {
 
       setScore(correctCount);
       setSubmitted(true);
-      toast.success('Quiz submitted successfully!');
+      
+      // Calculate score data
+      const percentage = (correctCount / quiz.questions.length) * 100;
+      const passed = percentage >= 70;
+      const scoreData = {
+        correct: correctCount,
+        total: quiz.questions.length,
+        percentage: percentage.toFixed(1)
+      };
+      
+      if (requirePass && !passed) {
+        toast.error(`Score: ${percentage.toFixed(1)}%. You need at least 70% to proceed. Please try again!`);
+        onComplete(false, scoreData);
+      } else {
+        toast.success('Quiz submitted successfully!');
+        onComplete(true, scoreData);
+      }
     } catch (error) {
       console.error('Error submitting quiz:', error);
       toast.error('Failed to submit quiz');
@@ -63,7 +82,55 @@ export function QuizAttempt({ quiz, userId, onComplete }: QuizAttemptProps) {
 
   if (submitted) {
     const percentage = ((score / quiz.questions.length) * 100).toFixed(1);
-    
+    const passed = (score / quiz.questions.length) >= 0.7;
+
+    if (requirePass && !passed) {
+      // Show retry screen only when failed
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-2xl mx-auto"
+        >
+          <Card className="overflow-hidden">
+            <CardContent className="p-8 text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring' }}
+                className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6"
+              >
+                <AlertCircle className="w-10 h-10 text-red-600" />
+              </motion.div>
+
+              <h2 className="text-3xl mb-2 text-gray-800">Needs Improvement</h2>
+              <p className="text-gray-600 mb-4">Your score: {percentage}%</p>
+              <p className="text-gray-600 mb-8">You need at least 70% to proceed. Review the material and try again!</p>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setSubmitted(false);
+                    setSelectedAnswers(new Array(quiz.questions.length).fill(''));
+                  }}
+                  className="w-full bg-gradient-to-r from-[#0055A4] to-purple-600"
+                >
+                  Retry Quiz
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      );
+    }
+
+    // When requirePass is true and user passed, don't show success screen here
+    // The parent component will handle showing the success screen
+    if (requirePass && passed) {
+      return null; // Parent will show the success screen
+    }
+
+    // Show success screen only when requirePass is false (standalone mode)
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -79,10 +146,10 @@ export function QuizAttempt({ quiz, userId, onComplete }: QuizAttemptProps) {
           >
             <CheckCircle className="w-10 h-10 text-green-600" />
           </motion.div>
-          
+
           <h2 className="text-3xl mb-2 text-gray-800">Quiz Completed!</h2>
           <p className="text-gray-600 mb-8">Bien joué!</p>
-          
+
           <div className="bg-gradient-to-r from-[#EF4135] to-pink-600 rounded-xl p-6 text-white mb-8">
             <p className="text-lg mb-2">Your Score</p>
             <p className="text-5xl mb-2">{score}/{quiz.questions.length}</p>
@@ -94,7 +161,7 @@ export function QuizAttempt({ quiz, userId, onComplete }: QuizAttemptProps) {
               const isCorrect = selectedAnswers[index] === q.correctAnswer;
               const selectedOption = q.options[['A', 'B', 'C', 'D'].indexOf(selectedAnswers[index])];
               const correctOption = q.options[['A', 'B', 'C', 'D'].indexOf(q.correctAnswer)];
-              
+
               return (
                 <div key={index} className={`p-4 rounded-lg border-2 text-left ${
                   isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
@@ -108,7 +175,7 @@ export function QuizAttempt({ quiz, userId, onComplete }: QuizAttemptProps) {
                       const letter = String.fromCharCode(65 + optIndex);
                       const isSelected = selectedAnswers[index] === letter;
                       const isCorrectOption = q.correctAnswer === letter;
-                      
+
                       return (
                         <div
                           key={optIndex}
@@ -131,7 +198,7 @@ export function QuizAttempt({ quiz, userId, onComplete }: QuizAttemptProps) {
           </div>
 
           <button
-            onClick={onComplete}
+            onClick={() => onComplete(true)}
             className="bg-gradient-to-r from-[#EF4135] to-pink-600 text-white px-8 py-3 rounded-xl hover:shadow-lg transition-all"
           >
             Back to Dashboard
