@@ -20,6 +20,16 @@ export function AssignmentAttempt({ assignment, userId, onComplete, requirePass 
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  const normalizeAnswer = (answer: string) => {
+    return answer
+      .toLowerCase() // Convert to lowercase
+      .normalize('NFD') // Normalize Unicode (separate accents from base characters)
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents/diacritics
+      .replace(/[-\s]+/g, '') // Remove hyphens and spaces
+      .replace(/[.,!?;:'"]/g, '') // Remove punctuation
+      .trim();
+  };
+
   const handleSubmit = async () => {
     // Check if all answers are filled
     if (answers.some(answer => !answer.trim())) {
@@ -30,11 +40,13 @@ export function AssignmentAttempt({ assignment, userId, onComplete, requirePass 
     setLoading(true);
 
     try {
-      // Calculate score
+      // Calculate score with lenient comparison
       let correctCount = 0;
       assignment.questions.forEach((q: any, index: number) => {
-        const studentAnswer = answers[index].trim().toLowerCase();
-        const correctAnswer = q.answer.trim().toLowerCase();
+        const studentAnswer = normalizeAnswer(answers[index]);
+        const correctAnswer = normalizeAnswer(q.answer);
+        
+        // Check if normalized answers match
         if (studentAnswer === correctAnswer) {
           correctCount++;
         }
@@ -160,7 +172,7 @@ export function AssignmentAttempt({ assignment, userId, onComplete, requirePass 
 
           <div className="space-y-3 mb-8">
             {assignment.questions.map((q: any, index: number) => {
-              const isCorrect = answers[index].trim().toLowerCase() === q.answer.trim().toLowerCase();
+              const isCorrect = normalizeAnswer(answers[index]) === normalizeAnswer(q.answer);
               return (
                 <div key={index} className={`p-4 rounded-lg border-2 text-left ${
                   isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
