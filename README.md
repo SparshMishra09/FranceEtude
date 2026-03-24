@@ -1,33 +1,84 @@
-# FrancÉtude - French Learning Platform
+# 🇫🇷 FrancÉtude – French Learning Platform
 
-## Overview
+## 📖 Overview
+**FrancÉtude** is a modern web application designed to help French teachers manage students, assignments, and quizzes while delivering an interactive and structured French learning experience.
 
-FrancÉtude is a comprehensive web application designed to help French teachers manage their students, assignments, quizzes, and provide an interactive French language course. Built with React, TypeScript, Vite, and Firebase.
+Built using **React, TypeScript, Vite, and Firebase**, the platform combines education with smart progress tracking and engaging content delivery.
 
-## Features
+---
 
-### For Teachers (Admin)
+## ✨ Features
 
-- **Dashboard**: View student performance analytics, score distributions, and recent submissions
-- **Student Management**: View, search, filter, and remove students
-- **Assignment Management**: Create, view, and delete assignments organized by semester
-- **Quiz Management**: Create, view, and delete quizzes organized by semester
-- **French Course Management**: 
-  - Add course topics with detailed information, examples, YouTube videos, and PDF notes
-  - Create assignments/quizzes for each topic
-  - Remove topics and manage course content
-- **Course Progress Tracking**: Monitor each student's progress through the French course
+### 👩‍🏫 For Teachers (Admin)
 
-### For Students
+- 📊 **Dashboard**
+  - Student performance analytics
+  - Score distribution insights
+  - Recent submissions overview
 
-- **Dashboard**: View available assignments and quizzes filtered by semester
-- **Profile**: Track personal performance, scores, and statistics
-- **French Course**: 
-  - Interactive topic-by-topic French learning course
-  - Study materials including topic information, examples, videos, and PDF notes
-  - Timer-based progress tracking (minimum 1 minute study time per topic)
-  - Assignments with 70% pass requirement to unlock next topic
-  - Progress tracking and course completion achievement
+- 👥 **Student Management**
+  - View, search, filter, and remove students
+
+- 📝 **Assignment & Quiz Management**
+  - Create, view, and delete assignments/quizzes
+  - Organized by semester
+
+- 📚 **French Course Management**
+  - Add topics with:
+    - Detailed explanations (French + English)
+    - Examples
+    - YouTube videos
+    - PDF notes
+  - Attach assignments/quizzes to topics
+  - Remove or update topics
+
+- 📈 **Progress Tracking**
+  - Monitor individual student progress
+  - Track overall course completion
+
+---
+
+### 🎓 For Students
+
+- 🏠 **Dashboard**
+  - View assignments and quizzes by semester
+
+- 👤 **Profile**
+  - Track scores, performance, and statistics
+
+- 📖 **Interactive French Course**
+  - Topic-by-topic structured learning
+  - Includes:
+    - Explanations
+    - Examples
+    - Videos
+    - Notes
+
+- ⏱ **Smart Progression System**
+  - Minimum **1-minute study requirement**
+  - **70% score required** to unlock next topic
+  - Retake failed assignments
+
+- 🏆 **Achievements**
+  - Course completion recognition
+
+---
+
+## ⚙️ Tech Stack
+
+- **Frontend:** React 18, TypeScript, Vite  
+- **UI:** Tailwind CSS, Radix UI, Framer Motion  
+- **Backend:** Firebase Authentication, Firestore  
+- **Charts:** Recharts  
+- **Design Theme:** French Flag Colors  
+  - Blue `#0055A4`
+  - White
+  - Red `#EF4135`
+
+---
+
+## 📂 Project Structure
+
 
 ## Running the Application
 
